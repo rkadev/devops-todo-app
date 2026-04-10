@@ -3,21 +3,33 @@ pipeline {
 
     stages {
 
-        stage('Clone') {
+        stage('Clean Workspace') {
             steps {
-                git 'https://github.com/rkadev/devops-todo-app.git'
+                cleanWs()
             }
         }
 
-        stage('Build Image') {
+        stage('Checkout Code') {
             steps {
-                sh 'docker build -t todo-app:v2 -f docker/Dockerfile .'
+                git branch: 'main',
+                    url: 'https://github.com/rkadev/devops-todo-app.git',
+                    credentialsId: 'GITHUB_CREDENTIALS'
             }
         }
 
-        stage('Save Image') {
+        stage('Deploy to Kubernetes') {
             steps {
-                sh 'docker save todo-app:v2 -o todo-app.tar'
+                sh '''
+                kubectl apply -f k8s/deployment.yaml
+                kubectl apply -f k8s/service.yaml
+                '''
+            }
+        }
+
+        stage('Verify') {
+            steps {
+                sh 'kubectl get pods'
+                sh 'kubectl get svc'
             }
         }
     }
